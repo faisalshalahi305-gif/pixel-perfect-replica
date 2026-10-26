@@ -57,10 +57,17 @@ function SimulationPage() {
     fly("follow");
     timers.current = [window.setTimeout(() => fly("system"), 4200)];
   }, [cinema, fly]);
+  const introTimer = useRef<number | null>(null);
+  const stopAutoCam = useCallback(() => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+    if (introTimer.current) clearTimeout(introTimer.current);
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => force((x) => x + 1), 120);
     const t = window.setTimeout(() => fly("system"), 2200);
+    introTimer.current = t;
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
       if (e.code === "Space") { sim.running = !sim.running; e.preventDefault(); }
@@ -122,7 +129,7 @@ function SimulationPage() {
   return (
     <div dir="rtl" className="fixed inset-0 overflow-hidden bg-background text-foreground select-none">
       <Suspense fallback={<div className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">جارٍ تحميل المشهد الفضائي…</div>}>
-        <SpaceScene sim={sim} show={show} mode={mode} flyKey={flyKey} tick={tick} onTick={() => setTick((x) => x + 1)} />
+        <SpaceScene sim={sim} show={show} mode={mode} flyKey={flyKey} tick={tick} onTick={() => setTick((x) => x + 1)} onUser={stopAutoCam} />
       </Suspense>
 
       {/* Left tool buttons */}
