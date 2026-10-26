@@ -40,17 +40,13 @@ function SimulationPage() {
   const [tick, setTick] = useState(0);
   const [mode, setMode] = useState<CamMode>("follow");
   const [flyKey, setFlyKey] = useState(0);
-  const [panel, setPanel] = useState(true);
-  const [eq, setEq] = useState(false);
   const [open, setOpen] = useState<"fate" | "cam" | "stats" | "lines" | null>(null);
   const [ellip, setEllip] = useState(0.6);
   const [pending, setPending] = useState<string | null>(null);
   const fateTimer = useRef<number | null>(null);
-  const [cinema, setCinema] = useState(true);
+  const [cinema] = useState(true);
   const [speed, setSpeed] = useState(EARTH_V_KMS);
   const [angle, setAngle] = useState(0);
-  const [dv, setDv] = useState(0.3);
-  const [timeScale, setTimeScale] = useState(0.12);
   const [show, setShow] = useState<Show>({ trails: true, vectors: true, predict: true, prev: true, grid: true });
   const timers = useRef<number[]>([]);
 
@@ -223,24 +219,5 @@ function Explain({ c, t }: { c: string; t: string }) {
       <span className="inline-block h-[3px] w-4 shrink-0 rounded" style={{ background: c }} />
       <span>{t}</span>
     </div>
-  );
-}
-function Section({ t, children }: { t: string; children: React.ReactNode }) {
-  return (<section className="mt-4 border-t border-border/30 pt-3"><h2 className="mb-2 text-xs font-semibold text-muted-foreground">{t}</h2><div className="space-y-2">{children}</div></section>);
-}
-function Btn({ children, onClick, primary, danger }: { children: React.ReactNode; onClick: () => void; primary?: boolean; danger?: boolean }) {
-  return (
-    <button onClick={onClick} className={`w-full rounded-md px-2 py-1.5 text-xs font-medium transition active:scale-[.98] ${danger ? "bg-destructive text-destructive-foreground" : primary ? "bg-primary text-primary-foreground hover:opacity-90" : "bg-foreground/10 hover:bg-foreground/20"}`}>{children}</button>
-  );
-}
-function Tg({ children, on, onClick }: { children: React.ReactNode; on: boolean; onClick: () => void }) {
-  return (<button onClick={onClick} className={`rounded-md border px-2 py-1 text-[11px] transition ${on ? "border-primary/60 bg-primary/20" : "border-border/40 opacity-60"}`}>{children}</button>);
-}
-function Slider({ label, value, min, max, step, show, onChange }: { label: string; value: number; min: number; max: number; step: number; show: string; onChange: (v: number) => void }) {
-  return (
-    <label className="block">
-      <div className="flex justify-between text-[11px]"><span>{label}</span><span dir="ltr" className="font-mono">{show}</span></div>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} className="w-full accent-primary" />
-    </label>
   );
 }
