@@ -114,7 +114,7 @@ function SimulationPage() {
     twinSoft: () => { sim.setGravity(true); sim.stopTwin(); sim.startTwin(0.3); fly("system"); },
     twinSplit: () => { sim.setGravity(true); sim.stopTwin(); sim.startTwin(16); fly("system"); },
   };
-  const pick = (k: string) => schedule(k, fates[k]);
+  const pick = (k: string) => { const f = fates[k]; if (f) schedule(k, f); };
   const quickReset = () => { if (fateTimer.current) clearTimeout(fateTimer.current); fateTimer.current = null; setPending(null); reset(); };
 
   const toggle = (k: keyof Show) => setShow((s) => ({ ...s, [k]: !s[k] }));
