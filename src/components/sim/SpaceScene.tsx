@@ -479,7 +479,9 @@ function OrbitGrid() {
 /* ---------------- Camera rig ---------------- */
 type Flight = { from: THREE.Vector3; fromT: THREE.Vector3; t0: number; dur: number; mode: CamMode };
 
-function CameraRig({ sim, mode, flyKey }: { sim: Sim; mode: CamMode; flyKey: number }) {
+const START_TARGET: [number, number, number] = [S, 0, 0];
+
+function CameraRig({ sim, mode, flyKey, onUser }: { sim: Sim; mode: CamMode; flyKey: number; onUser?: () => void }) {
   const { camera, controls } = useThree() as unknown as { camera: THREE.PerspectiveCamera; controls: OC | null };
   const flight = useRef<Flight | null>(null);
   const last = useRef(new THREE.Vector3());
@@ -507,14 +509,29 @@ function CameraRig({ sim, mode, flyKey }: { sim: Sim; mode: CamMode; flyKey: num
     }
   };
 
+  const userMode = useRef<CamMode | null>(null);
   useEffect(() => {
+    userMode.current = null;
     flight.current = { from: camera.position.clone(), fromT: controls ? controls.target.clone() : new THREE.Vector3(), t0: clock.current, dur: flyKey === 0 ? 0.01 : 2.6, mode };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flyKey, mode, controls]);
+  }, [flyKey, controls]);
+
+  // As soon as the user touches/drags/zooms, stop any automatic camera motion.
+  useEffect(() => {
+    if (!controls) return;
+    const onStart = () => {
+      flight.current = null;
+      userMode.current = mode === "chase" ? "follow" : mode;
+      onUser?.();
+    };
+    controls.addEventListener("start", onStart);
+    return () => controls.removeEventListener("start", onStart);
+  }, [controls, mode, onUser]);
 
   useFrame((_, d) => {
     clock.current += d;
     if (!controls) return;
+    const mode_ = userMode.current ?? mode;
     toScene(sim.earth, ep);
     const P = new THREE.Vector3(), T = new THREE.Vector3();
     const f = flight.current;
@@ -525,8 +542,8 @@ function CameraRig({ sim, mode, flyKey }: { sim: Sim; mode: CamMode; flyKey: num
       camera.position.lerpVectors(f.from, P, e);
       controls.target.lerpVectors(f.fromT, T, e);
       if (k >= 1) flight.current = null;
-    } else if (mode === "follow" || mode === "chase") {
-      if (mode === "chase") {
+    } else if (mode_ === "follow" || mode_ === "chase") {
+      if (mode_ === "chase") {
         desired("chase", P, T);
         camera.position.lerp(P, 1 - Math.exp(-4 * d));
         controls.target.lerp(T, 1 - Math.exp(-6 * d));
@@ -557,7 +574,7 @@ function Driver({ sim, onTick }: { sim: Sim; onTick: () => void }) {
   return null;
 }
 
-export default function SpaceScene({ sim, show, mode, flyKey, tick, onTick }: { sim: Sim; show: Show; mode: CamMode; flyKey: number; tick: number; onTick: () => void }) {
+export default function SpaceScene({ sim, show, mode, flyKey, tick, onTick, onUser }: { sim: Sim; show: Show; mode: CamMode; flyKey: number; tick: number; onTick: () => void; onUser?: () => void }) {
   void GM;
   return (
     <Canvas
@@ -581,8 +598,8 @@ export default function SpaceScene({ sim, show, mode, flyKey, tick, onTick }: { 
       <Markers sim={sim} />
       <Explosion sim={sim} />
       <Driver sim={sim} onTick={onTick} />
-      <OrbitControls makeDefault enableDamping dampingFactor={0.08} minDistance={0.8} maxDistance={6000} target={[S, 0, 0]} />
-      <CameraRig sim={sim} mode={mode} flyKey={flyKey} />
+      <OrbitControls makeDefault enableDamping dampingFactor={0.08} minDistance={0.8} maxDistance={6000} target={START_TARGET} />
+      <CameraRig sim={sim} mode={mode} flyKey={flyKey} onUser={onUser} />
       <EffectComposer multisampling={4}>
         <Bloom mipmapBlur intensity={0.9} luminanceThreshold={0.95} luminanceSmoothing={0.2} radius={0.8} />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
