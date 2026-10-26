@@ -30,6 +30,8 @@ const KIND: Record<string, string> = {
   free: "حركة مستقيمة (بلا جاذبية)",
 };
 
+export const FATE_DELAY_MS = 10_000;
+
 const fmt = (n: number, d = 2) => (isFinite(n) ? n.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d }) : "∞");
 
 function SimulationPage() {
@@ -40,7 +42,10 @@ function SimulationPage() {
   const [flyKey, setFlyKey] = useState(0);
   const [panel, setPanel] = useState(true);
   const [eq, setEq] = useState(false);
-  const [open, setOpen] = useState<"cam" | "stats" | "lines" | null>(null);
+  const [open, setOpen] = useState<"fate" | "cam" | "stats" | "lines" | null>(null);
+  const [ellip, setEllip] = useState(0.6);
+  const [pending, setPending] = useState<string | null>(null);
+  const fateTimer = useRef<number | null>(null);
   const [cinema, setCinema] = useState(true);
   const [speed, setSpeed] = useState(EARTH_V_KMS);
   const [angle, setAngle] = useState(0);
@@ -63,10 +68,9 @@ function SimulationPage() {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
       if (e.code === "Space") { sim.running = !sim.running; e.preventDefault(); }
-      if (e.key === "h" || e.key === "H") setPanel((p) => !p);
     };
     window.addEventListener("keydown", onKey);
-    return () => { clearInterval(id); clearTimeout(t); window.removeEventListener("keydown", onKey); timers.current.forEach(clearTimeout); };
+    return () => { clearInterval(id); clearTimeout(t); window.removeEventListener("keydown", onKey); timers.current.forEach(clearTimeout); if (fateTimer.current) clearTimeout(fateTimer.current); };
   }, [sim, fly]);
 
   const b = sim.earth;
@@ -93,6 +97,30 @@ function SimulationPage() {
     fly("follow");
     timers.current = [window.setTimeout(() => fly("system"), 2200)];
   };
+  // Hidden 10-second suspense timer: the orbit continues calmly, then the event fires suddenly.
+  const schedule = (key: string, action: () => void) => {
+    if (fateTimer.current) clearTimeout(fateTimer.current);
+    setPending(key);
+    fateTimer.current = window.setTimeout(() => {
+      fateTimer.current = null;
+      setPending(null);
+      sim.running = true;
+      action();
+      force((x) => x + 1);
+    }, FATE_DELAY_MS);
+  };
+  const fates: Record<string, () => void> = {
+    stable: () => { sim.stopTwin(); sim.setGravity(true); applySpeed(EARTH_V_KMS, 0); },
+    sun: () => { sim.setGravity(true); applySpeed(6, 0); },
+    escape: () => { sim.setGravity(true); applySpeed(46, 0); fly("system"); },
+    nogravity: () => { sim.setGravity(false); cinematic(); },
+    ellipse: () => { sim.setGravity(true); applySpeed(EARTH_V_KMS + ellip * 10, 0); fly("system"); },
+    twinSoft: () => { sim.setGravity(true); sim.stopTwin(); sim.startTwin(0.3); fly("system"); },
+    twinSplit: () => { sim.setGravity(true); sim.stopTwin(); sim.startTwin(16); fly("system"); },
+  };
+  const pick = (k: string) => schedule(k, fates[k]);
+  const quickReset = () => { if (fateTimer.current) clearTimeout(fateTimer.current); fateTimer.current = null; setPending(null); reset(); };
+
   const toggle = (k: keyof Show) => setShow((s) => ({ ...s, [k]: !s[k] }));
 
   return (
@@ -103,7 +131,7 @@ function SimulationPage() {
 
       {/* Left tool buttons */}
       <div className="absolute left-3 bottom-4 z-20 flex flex-col gap-1.5">
-        {([["cam", "🎥", "الكاميرا"], ["stats", "📊", "الحالة المدارية"], ["lines", "🧭", "الخطوط والمسارات"]] as [typeof open, string, string][]).map(([k, ic, l]) => (
+        {([["fate", "🎚️", "التحكم والمصائر"], ["cam", "🎥", "الكاميرا"], ["stats", "📊", "الحالة المدارية"], ["lines", "🧭", "الخطوط والمسارات"]] as [typeof open, string, string][]).map(([k, ic, l]) => (
           <button key={k} onClick={() => setOpen((o) => (o === k ? null : k))} aria-label={l} title={l}
             className={`grid h-8 w-8 place-items-center rounded-full border border-border/40 text-sm backdrop-blur-md transition ${open === k ? "bg-primary text-primary-foreground" : "bg-background/50 hover:bg-foreground/10"}`}>{ic}</button>
         ))}
@@ -111,6 +139,33 @@ function SimulationPage() {
 
       {open && (
         <div className="absolute left-14 bottom-4 z-20 max-w-[80vw] rounded-lg border border-border/40 bg-background/50 p-2 text-[11px] backdrop-blur-md" dir="rtl">
+          {open === "fate" && (
+            <div className="w-[min(300px,78vw)] space-y-1">
+              <div className="grid grid-cols-2 gap-1">
+                <Fate on={pending === "stable"} onClick={() => pick("stable")}>🌍 المدار الطبيعي المستقر</Fate>
+                <Fate on={pending === "sun"} onClick={() => pick("sun")}>🔥 السقوط في الشمس</Fate>
+                <Fate on={pending === "escape"} onClick={() => pick("escape")}>❄️ الإفلات والتجمد</Fate>
+                <Fate on={pending === "nogravity"} onClick={() => pick("nogravity")}>🚀 اختفاء جاذبية الشمس</Fate>
+              </div>
+              <div className="rounded-md border border-border/40 p-1">
+                <Fate on={pending === "ellipse"} onClick={() => pick("ellipse")}>🪐 مدار إهليلجي متطرف</Fate>
+                <input type="range" min={0.1} max={1.2} step={0.05} value={ellip} onChange={(e) => setEllip(parseFloat(e.target.value))} className="mt-1 w-full accent-primary" aria-label="شدة التمدد" />
+                <div className="flex justify-between text-[9px] text-muted-foreground"><span>شدة التمدد</span><span dir="ltr" className="font-mono">{fmt(EARTH_V_KMS + ellip * 10, 1)} km/s</span></div>
+              </div>
+              <div className="rounded-md border border-border/40 p-1">
+                <div className="mb-1 text-[10px] text-muted-foreground">👥 كوكب الأرض التوأم</div>
+                <div className="grid grid-cols-2 gap-1">
+                  <Fate on={pending === "twinSoft"} onClick={() => pick("twinSoft")}>افتراق تدريجي هادئ</Fate>
+                  <Fate on={pending === "twinSplit"} onClick={() => pick("twinSplit")}>مصيران مختلفان</Fate>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-1 pt-1">
+                <Fate onClick={quickReset}>🔄 إعادة ضبط</Fate>
+                <Fate onClick={() => { sim.running = !sim.running; force((x) => x + 1); }}>{sim.running ? "⏸️ إيقاف" : "▶️ تشغيل"}</Fate>
+                <Link to="/" className="rounded-md bg-foreground/10 px-1 py-1 text-center text-[10px] hover:bg-foreground/20">العودة للدرس</Link>
+              </div>
+            </div>
+          )}
           {open === "cam" && (
             <div className="flex flex-col gap-0.5">
               {([["follow", "قرب الأرض"], ["chase", "تتبع خلفي"], ["system", "المدار كاملاً"], ["sun", "الشمس"]] as [CamMode, string][]).map(([m, l]) => (
@@ -147,70 +202,13 @@ function SimulationPage() {
         </div>
       )}
 
-      <button onClick={() => setPanel((p) => !p)} className="absolute right-4 top-4 z-20 rounded-md border border-border/40 bg-background/50 px-3 py-1.5 text-xs backdrop-blur-md">
-        {panel ? "إخفاء اللوحة" : "لوحة التحكم"}
-      </button>
-
-      {/* Control panel */}
-      <aside className={`absolute right-4 top-14 bottom-4 w-[300px] overflow-y-auto rounded-lg border border-border/40 bg-background/45 p-4 text-sm backdrop-blur-xl transition-all duration-500 ${panel ? "translate-x-0 opacity-100" : "translate-x-[120%] opacity-0"}`}>
-        <h1 className="text-base font-bold">سرعة الأرض وجاذبية الشمس</h1>
-        <Link to="/" className="text-[11px] text-muted-foreground underline">العودة للدرس</Link>
-
-        <Section t="التشغيل">
-          <div className="grid grid-cols-2 gap-2">
-            <Btn onClick={() => { sim.running = !sim.running; force((x) => x + 1); }} primary>{sim.running ? "إيقاف مؤقت" : "تشغيل"}</Btn>
-            <Btn onClick={reset}>إعادة الحالة الطبيعية</Btn>
-          </div>
-          <Slider label="سرعة الزمن" value={timeScale} min={0.005} max={1.5} step={0.005} show={`${fmt(timeScale * 365.25, 1)} يوم/ث`} onChange={(x) => { setTimeScale(x); sim.timeScale = x; }} />
-        </Section>
-
-        <Section t="سرعة الأرض المدارية">
-          <div className="grid grid-cols-4 gap-1">
-            <Btn onClick={() => applySpeed(v - 5)}>−5</Btn>
-            <Btn onClick={() => applySpeed(v - 1)}>−1</Btn>
-            <Btn onClick={() => applySpeed(v + 1)}>+1</Btn>
-            <Btn onClick={() => applySpeed(v + 5)}>+5</Btn>
-          </div>
-          <Slider label="السرعة الجديدة" value={speed} min={0} max={70} step={0.1} show={`${fmt(speed, 1)} كم/ث`} onChange={setSpeed} />
-          <Slider label="اتجاه السرعة عن المماس" value={angle} min={-80} max={80} step={1} show={`${angle}°`} onChange={setAngle} />
-          <Btn onClick={() => applySpeed(speed, angle)} primary>تطبيق السرعة في الموضع الحالي</Btn>
-          <p className="mt-2 text-[11px] leading-5 text-muted-foreground">النتيجة محسوبة من الموضع والسرعة والاتجاه لحظة التطبيق. الإفلات عند هذا البعد يتطلب ≈ {fmt(vesc, 1)} كم/ث تقريباً.</p>
-        </Section>
-
-        <Section t="جاذبية الشمس (تجربة افتراضية)">
-          <Btn onClick={() => { sim.setGravity(!sim.gravity); cinematic(); force((x) => x + 1); }} danger={sim.gravity}>
-            {sim.gravity ? "إيقاف جاذبية الشمس" : "إعادة جاذبية الشمس"}
-          </Btn>
-          <p className="mt-2 text-[11px] leading-5 text-muted-foreground">تجربة فكرية لتوضيح دور الجاذبية؛ لا يمكن إلغاء جاذبية الشمس فعلياً. تتحرك الأرض في خط مستقيم مماس لمدارها لحظة الإيقاف.</p>
-        </Section>
-
-        <Section t="فرق السرعة الصغير">
-          <Slider label="فرق السرعة للأرض الثانية" value={dv} min={-3} max={3} step={0.01} show={`${dv > 0 ? "+" : ""}${fmt(dv)} كم/ث`} onChange={setDv} />
-          <Btn onClick={() => { if (sim.twinOn) sim.stopTwin(); else sim.startTwin(dv); fly("system"); force((x) => x + 1); }} primary={!sim.twinOn}>
-            {sim.twinOn ? "إنهاء المقارنة" : "تشغيل مقارنة فرق السرعة"}
-          </Btn>
-        </Section>
-
-        <Section t="العرض">
-          <div className="grid grid-cols-2 gap-1">
-            <Tg on={show.trails} onClick={() => toggle("trails")}>المسارات</Tg>
-            <Tg on={show.vectors} onClick={() => toggle("vectors")}>المتجهات</Tg>
-            <Tg on={show.predict} onClick={() => toggle("predict")}>المسار المتوقع</Tg>
-            <Tg on={show.prev} onClick={() => toggle("prev")}>المدار السابق</Tg>
-            <Tg on={show.grid} onClick={() => toggle("grid")}>حلقات المسافة</Tg>
-            <Tg on={eq} onClick={() => setEq((e) => !e)}>المعادلات</Tg>
-            <Tg on={cinema} onClick={() => setCinema((c) => !c)}>كاميرا سينمائية</Tg>
-          </div>
-        </Section>
-
-        <p className="mt-4 text-[10px] leading-4 text-muted-foreground">
-          الحركة محسوبة بقانون نيوتن للجاذبية (تكامل عددي). أحجام الشمس والأرض مكبّرة للرؤية، والمسافات بالمقياس الحقيقي النسبي (١ وحدة فلكية). اختصارات: H لإخفاء اللوحة · زر المسافة للإيقاف والتشغيل.
-        </p>
-      </aside>
     </div>
   );
 }
 
+function Fate({ children, on, onClick }: { children: React.ReactNode; on?: boolean; onClick: () => void }) {
+  return (<button onClick={onClick} className={`w-full rounded-md px-1 py-1 text-[10px] transition active:scale-[.98] ${on ? "bg-primary/25" : "bg-foreground/10 hover:bg-foreground/20"}`}>{children}</button>);
+}
 function Stat({ k, v }: { k: string; v: string }) {
   return (
     <div className="rounded-md border border-border/40 bg-background/40 px-1 py-0.5 text-center">
