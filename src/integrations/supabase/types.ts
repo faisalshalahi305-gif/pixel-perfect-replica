@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      lesson_content: {
+        Row: {
+          blocks: Json
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          blocks: Json
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          blocks?: Json
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      templates: {
+        Row: {
+          background: string
+          category: string
+          created_at: string
+          display_mode: string
+          elements: Json
+          height: number
+          id: string
+          is_system: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          width: number
+        }
+        Insert: {
+          background?: string
+          category?: string
+          created_at?: string
+          display_mode?: string
+          elements?: Json
+          height?: number
+          id?: string
+          is_system?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          width?: number
+        }
+        Update: {
+          background?: string
+          category?: string
+          created_at?: string
+          display_mode?: string
+          elements?: Json
+          height?: number
+          id?: string
+          is_system?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          width?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
