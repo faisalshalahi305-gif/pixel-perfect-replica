@@ -494,9 +494,10 @@ function CameraRig({ sim, mode, flyKey, onUser }: { sim: Sim; mode: CamMode; fly
   const desired = (m: CamMode, outPos: THREE.Vector3, outT: THREE.Vector3) => {
     toScene(sim.earth, ep);
     const r = ep.length();
-    if (m === "wide") {
+    if (m === "wide" || m === "inner") {
+      const span = m === "wide" ? PLANET_SPAN : INNER_SPAN;
       const halfW = Math.tan((camera.fov * Math.PI) / 360) * Math.max(0.35, Math.min(1, camera.aspect));
-      const D = Math.min(2600, Math.max(140, PLANET_SPAN / Math.max(halfW, 0.05)));
+      const D = Math.min(2600, Math.max(60, span / Math.max(halfW, 0.05)));
       outT.set(0, 0, 0);
       outPos.set(D * 0.12, D * 0.72, D * 0.7);
     } else if (m === "system" || m === "free") {
