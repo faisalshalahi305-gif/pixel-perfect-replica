@@ -581,7 +581,7 @@ export default function SpaceScene({ sim, show, mode, flyKey, tick, onTick, onUs
   return (
     <Canvas
       dpr={[1.5, 2.5]}
-      gl={{ antialias: true, powerPreference: "high-performance", logarithmicDepthBuffer: true }}
+      gl={{ antialias: true, powerPreference: "high-performance" }}
       camera={{ position: [S + 2.6, 1.2, 2.4], fov: 45, near: 0.05, far: 20000 }}
       onCreated={({ camera }) => camera.lookAt(S, 0, 0)}
     >
