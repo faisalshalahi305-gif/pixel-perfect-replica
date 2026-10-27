@@ -20,16 +20,16 @@ function makeTex(colors: string[], bands?: boolean) {
   const c = document.createElement("canvas");
   c.width = 512; c.height = 256;
   const g = c.getContext("2d")!;
-  g.fillStyle = colors[0]; g.fillRect(0, 0, 512, 256);
+  g.fillStyle = colors[0]!; g.fillRect(0, 0, 512, 256);
   if (bands) {
     for (let y = 0; y < 256; y += 4 + Math.random() * 10) {
-      g.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+      g.fillStyle = colors[Math.floor(Math.random() * colors.length)]!;
       g.globalAlpha = 0.5 + Math.random() * 0.5;
       g.fillRect(0, y, 512, 3 + Math.random() * 12);
     }
   } else {
     for (let i = 0; i < 900; i++) {
-      g.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+      g.fillStyle = colors[Math.floor(Math.random() * colors.length)]!;
       g.globalAlpha = 0.25 + Math.random() * 0.4;
       g.beginPath();
       g.arc(Math.random() * 512, Math.random() * 256, 2 + Math.random() * 14, 0, Math.PI * 2);
