@@ -82,7 +82,6 @@ function Planet({ p }: { p: P }) {
 export function Planets() {
   return (
     <>
-      <pointLight position={[0, 0, 0]} intensity={3} decay={0} color="#fff4e0" />
       {PLANETS.map((p) => <Planet key={p.name} p={p} />)}
     </>
   );
