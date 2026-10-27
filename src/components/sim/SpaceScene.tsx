@@ -105,7 +105,7 @@ function useEarthMaterial(tint: THREE.Color) {
   const [day, night, spec, nrm] = useTexture([dayA.url, nightA.url, specA.url, normalA.url]);
   day.colorSpace = THREE.SRGBColorSpace;
   night.colorSpace = THREE.SRGBColorSpace;
-  day.anisotropy = 8;
+  for (const t of [day, night, spec, nrm]) { t.anisotropy = 16; t.minFilter = THREE.LinearMipmapLinearFilter; t.needsUpdate = true; }
   return useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -135,7 +135,8 @@ function useEarthMaterial(tint: THREE.Color) {
             alb=mix(alb,iceCol*(.82+.25*lum),ice);
             vec3 charred=mix(vec3(.12,.05,.03),vec3(.35,.12,.05),lum);
             alb=mix(alb,charred,uHeat);
-            vec3 col=alb*max(d,0.)*1.35+alb*.012;
+            alb=mix(vec3(lum),alb,1.18);
+            vec3 col=alb*max(d,0.)*1.6+alb*.03;
             vec3 H=normalize(L+V);
             float sp=pow(max(dot(Np,H),0.),55.)*water*(1.-ice)*(1.-uHeat);
             col+=vec3(1.,.93,.8)*sp*.9*dayMix;
@@ -176,6 +177,7 @@ function EarthBody({ which, sim, tint }: { which: "earth" | "twin"; sim: Sim; ti
   const atmo = useMemo(atmoMat, []);
   const clouds = useTexture(cloudA.url);
   clouds.colorSpace = THREE.SRGBColorSpace;
+  clouds.anisotropy = 16;
   const group = useRef<THREE.Group>(null);
   const spin = useRef<THREE.Group>(null);
   const cloudRef = useRef<THREE.Mesh>(null);
@@ -270,7 +272,7 @@ function Starfield() {
       uniforms: { uOp: { value: op }, uTime: { value: 0 } },
       vertexShader: `attribute float size;attribute vec3 color;varying vec3 vC;varying float vTw;uniform float uTime;
         void main(){vC=color;vTw=.75+.25*sin(uTime*2.+position.x*.13+position.y*.07);gl_PointSize=size*vTw;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader: `uniform float uOp;varying vec3 vC;varying float vTw;void main(){float d=length(gl_PointCoord-.5);float a=exp(-d*d*22.);gl_FragColor=vec4(vC*a*uOp*1.3,1.);}`,
+      fragmentShader: `uniform float uOp;varying vec3 vC;varying float vTw;void main(){float d=length(gl_PointCoord-.5);float a=exp(-d*d*34.)+exp(-d*d*8.)*.25;gl_FragColor=vec4(vC*a*uOp*1.6,1.);}`,
     });
   const m1 = useMemo(() => mat(1), []);
   const m2 = useMemo(() => mat(0.35), []);
@@ -469,7 +471,7 @@ function OrbitGrid() {
       {[0.5, 1, 1.5, 2, 3, 4].map((au) => (
         <mesh key={au} rotation-x={-Math.PI / 2}>
           <ringGeometry args={[au * S - 0.02, au * S + 0.02, 256]} />
-          <meshBasicMaterial color="#8fb4ff" transparent opacity={au === 1 ? 0.12 : 0.05} side={THREE.DoubleSide} depthWrite={false} />
+          <meshBasicMaterial color="#9cc2ff" transparent opacity={au === 1 ? 0.22 : 0.09} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
       ))}
     </group>
@@ -578,13 +580,13 @@ export default function SpaceScene({ sim, show, mode, flyKey, tick, onTick, onUs
   void GM;
   return (
     <Canvas
-      dpr={[1, 2]}
+      dpr={[1.5, 2.5]}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       camera={{ position: [S + 2.6, 1.2, 2.4], fov: 45, near: 0.05, far: 20000 }}
       onCreated={({ camera }) => camera.lookAt(S, 0, 0)}
     >
-      <color attach="background" args={["#020309"]} />
-      <ambientLight intensity={0.025} />
+      <color attach="background" args={["#01020a"]} />
+      <ambientLight intensity={0.06} />
       <Suspense fallback={null}>
         <Starfield />
         <Sun />
@@ -600,10 +602,10 @@ export default function SpaceScene({ sim, show, mode, flyKey, tick, onTick, onUs
       <Driver sim={sim} onTick={onTick} />
       <OrbitControls makeDefault enableDamping dampingFactor={0.08} minDistance={0.8} maxDistance={6000} target={START_TARGET} />
       <CameraRig sim={sim} mode={mode} flyKey={flyKey} onUser={onUser} />
-      <EffectComposer multisampling={4}>
-        <Bloom mipmapBlur intensity={0.9} luminanceThreshold={0.95} luminanceSmoothing={0.2} radius={0.8} />
-        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-        <Vignette eskil={false} offset={0.25} darkness={0.75} />
+      <EffectComposer multisampling={8}>
+        <Bloom mipmapBlur intensity={0.7} luminanceThreshold={1.0} luminanceSmoothing={0.15} radius={0.7} />
+        <ToneMapping mode={ToneMappingMode.AGX} />
+        <Vignette eskil={false} offset={0.4} darkness={0.35} />
       </EffectComposer>
     </Canvas>
   );
