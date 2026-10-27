@@ -7,7 +7,7 @@ import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OC } from "three-stdlib";
 import { Sim, S, EARTH_R, SUN_R, toScene } from "./sim-state";
-import { Planets } from "./Planets";
+import { Planets, PLANET_SPAN, INNER_SPAN } from "./Planets";
 import { GM } from "@/lib/orbit-physics";
 import dayA from "@/assets/earth_atmos_2048.jpg.asset.json";
 import nightA from "@/assets/earth_lights_2048.png.asset.json";
@@ -15,7 +15,7 @@ import specA from "@/assets/earth_specular_2048.jpg.asset.json";
 import cloudA from "@/assets/earth_clouds_1024.png.asset.json";
 import normalA from "@/assets/earth_normal_2048.jpg.asset.json";
 
-export type CamMode = "system" | "follow" | "chase" | "sun" | "free";
+export type CamMode = "system" | "follow" | "chase" | "sun" | "free" | "wide" | "inner";
 export type Show = { trails: boolean; vectors: boolean; predict: boolean; prev: boolean; grid: boolean };
 
 const NOISE = `
@@ -494,7 +494,13 @@ function CameraRig({ sim, mode, flyKey, onUser }: { sim: Sim; mode: CamMode; fly
   const desired = (m: CamMode, outPos: THREE.Vector3, outT: THREE.Vector3) => {
     toScene(sim.earth, ep);
     const r = ep.length();
-    if (m === "system" || m === "free") {
+    if (m === "wide" || m === "inner") {
+      const span = m === "wide" ? PLANET_SPAN : INNER_SPAN;
+      const halfW = Math.tan((camera.fov * Math.PI) / 360) * Math.max(0.35, Math.min(1, camera.aspect));
+      const D = Math.min(2600, Math.max(60, span / Math.max(halfW, 0.05)));
+      outT.set(0, 0, 0);
+      outPos.set(D * 0.12, D * 0.72, D * 0.7);
+    } else if (m === "system" || m === "free") {
       const R = Math.max(S * 1.15, r * 1.25);
       outT.set(0, 0, 0);
       outPos.set(R * 0.15, R * 0.95, R * 1.25);
