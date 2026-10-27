@@ -15,7 +15,7 @@ import specA from "@/assets/earth_specular_2048.jpg.asset.json";
 import cloudA from "@/assets/earth_clouds_1024.png.asset.json";
 import normalA from "@/assets/earth_normal_2048.jpg.asset.json";
 
-export type CamMode = "system" | "follow" | "chase" | "sun" | "free";
+export type CamMode = "system" | "follow" | "chase" | "sun" | "free" | "wide";
 export type Show = { trails: boolean; vectors: boolean; predict: boolean; prev: boolean; grid: boolean };
 
 const NOISE = `

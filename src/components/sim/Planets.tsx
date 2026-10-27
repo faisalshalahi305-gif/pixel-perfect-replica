@@ -17,9 +17,11 @@ const PLANETS: P[] = [
   { name: "neptune", au: 30.05, r: 2.0, colors: ["#3f66d8", "#2c4fb8", "#5a80e6"], bands: true, phase: 0.2 },
 ];
 
-// Orbit distances compressed (sqrt) so the outer planets sit near enough to see,
+// Orbit distances compressed (power ~0.45) so the outer planets sit near enough to see,
 // while Earth (au = 1) still lands exactly on its physics orbit at S units.
-const orbitR = (au: number) => S * Math.sqrt(au);
+export const orbitR = (au: number) => S * Math.pow(au, 0.45);
+// Distance from the Sun that frames the whole planetary system (Neptune + margin).
+export const PLANET_SPAN = orbitR(30.05) * 1.15;
 
 function makeTex(colors: string[], bands?: boolean) {
   const c = document.createElement("canvas");

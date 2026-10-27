@@ -171,7 +171,7 @@ function SimulationPage() {
           )}
           {open === "cam" && (
             <div className="flex flex-col gap-0.5">
-              {([["follow", "قرب الأرض"], ["chase", "تتبع خلفي"], ["system", "المدار كاملاً"], ["sun", "الشمس"]] as [CamMode, string][]).map(([m, l]) => (
+              {([["follow", "قرب الأرض"], ["chase", "تتبع خلفي"], ["system", "المدار كاملاً"], ["wide", "كل الكواكب"], ["sun", "الشمس"]] as [CamMode, string][]).map(([m, l]) => (
                 <button key={m} onClick={() => fly(m)} className={`rounded-full px-3 py-1 text-[11px] transition ${mode === m ? "bg-primary text-primary-foreground" : "hover:bg-foreground/10"}`}>{l}</button>
               ))}
             </div>
