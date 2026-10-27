@@ -7,6 +7,7 @@ import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OC } from "three-stdlib";
 import { Sim, S, EARTH_R, SUN_R, toScene } from "./sim-state";
+import { Planets } from "./Planets";
 import { GM } from "@/lib/orbit-physics";
 import dayA from "@/assets/earth_atmos_2048.jpg.asset.json";
 import nightA from "@/assets/earth_lights_2048.png.asset.json";
@@ -590,6 +591,7 @@ export default function SpaceScene({ sim, show, mode, flyKey, tick, onTick, onUs
       <Suspense fallback={null}>
         <Starfield />
         <Sun />
+        <Planets />
         <EarthBody which="earth" sim={sim} tint="#ffffff" />
         <EarthBody which="twin" sim={sim} tint="#ffcf8a" />
       </Suspense>
